@@ -3,8 +3,11 @@ import requests
 from struct import pack,unpack
 from json import JSONDecodeError, load, loads, dump, dumps
 from binascii import hexlify,unhexlify
+import argparse
 import logging
 import json
+import sys
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -241,7 +244,7 @@ def disco_to_forwarder(id,port=1681):
         elif message.id==PUSH_DATA:
             sendPushAck(remote, message,sock)
         
-if __name__ == "__main__":
+def disco_session(packet_num,packet_delay):
     # open json config file for config
     with open('disco.json') as json_file:
         config = load(json_file)
@@ -261,5 +264,23 @@ if __name__ == "__main__":
         with open('disco.json', 'w') as outfile:
             dump(config, outfile, indent=4)
 
-    # open port and wait for forwarder to pull the disco data packet to transmit
-    disco_to_forwarder(id,listen_port)
+    for i in range(packet_num):
+        # open port and wait for forwarder to pull the disco data packet to transmit
+        disco_to_forwarder(id,listen_port)
+        print('packet number', i)
+        time.sleep(packet_delay)
+
+    return
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("disco mode client", add_help=True)
+    
+    parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=6, type=int)
+    parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=5, type=int)
+    
+    args = parser.parse_args()
+    packet_num=args.number
+    packet_delay=args.delay
+
+    disco_session(packet_num,packet_delay)

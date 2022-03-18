@@ -2,7 +2,7 @@ version: "2.4"
 services:
   discomode:
     build: .
-    command: python /disco.py -n 5 -d 6
+    command: python /disco.py -n ${NUM:-5} -d ${DELAY:-6}
     ports:
       - "1681:1681/udp"
     volumes:

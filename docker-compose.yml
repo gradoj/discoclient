@@ -2,6 +2,7 @@ version: "2.4"
 services:
   discomode:
     build: .
+    command: python /disco.py -n 5 -d 6
     ports:
       - "1681:1681/udp"
     volumes:

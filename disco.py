@@ -280,7 +280,7 @@ if __name__ == "__main__":
     
     parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=1, type=int)
     parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=1, type=int)
-    parser.add_argument('-p', '--payload', help='payload to be sent as string, default:0x30', default='30', type=str)
+    parser.add_argument('-p', '--payload', help='payload to be sent as string, default:30', default='30', type=str)
     
     args = parser.parse_args()
     packet_num=args.number

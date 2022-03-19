@@ -27,6 +27,7 @@ headers = {
 
 def get_disco_id(hs_addr = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"):
     url = "https://discomode.io/api/id?hs_addr="+str(hs_addr)
+
     
     try:
         data=requests.get(url=url, headers=headers)
@@ -38,8 +39,9 @@ def get_disco_id(hs_addr = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     logging.info('got disco id %s from %s', data['disco_id'], url)
     return data['disco_id']
 
-def get_disco_packet(id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"):
-    url = "https://discomode.io/api/disco?id="+str(id)
+def get_disco_packet(id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",payload='30'):
+    url = "https://discomode.io/api/disco?id="+str(id)+'&payload='+payload
+
     
     try:
         data=requests.get(url=url, headers=headers)
@@ -217,7 +219,7 @@ def sendPushAck(remote, request,sock):
 
     sock.sendto(m.encode(), remote)
      
-def disco_to_forwarder(id,port=1681):
+def disco_to_forwarder(id,payload,port=1681):
     ''' get disco packet from server using id and give to forwarder when polled on port
 
     '''
@@ -238,13 +240,13 @@ def disco_to_forwarder(id,port=1681):
         message = gm.decode(data, remote)
 
         if message.id==PULL_DATA:
-            txpk=get_disco_packet(id=id)
-            sendPullResponse(remote,message,txpk, sock)
+            txpk=get_disco_packet(id=id, payload=payload)
+            sendPullResponse(remote,message,txpk,sock)
             break
         elif message.id==PUSH_DATA:
             sendPushAck(remote, message,sock)
         
-def disco_session(packet_num,packet_delay):
+def disco_session(packet_num,packet_delay,payload):
     # open json config file for config
     with open('disco.json') as json_file:
         config = load(json_file)
@@ -266,7 +268,7 @@ def disco_session(packet_num,packet_delay):
 
     for i in range(packet_num):
         # open port and wait for forwarder to pull the disco data packet to transmit
-        disco_to_forwarder(id,listen_port)
+        disco_to_forwarder(id,payload,listen_port)
         print('packet number', i)
         time.sleep(packet_delay)
 
@@ -276,11 +278,13 @@ def disco_session(packet_num,packet_delay):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("disco mode client", add_help=True)
     
-    parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=6, type=int)
-    parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=5, type=int)
+    parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=1, type=int)
+    parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=1, type=int)
+    parser.add_argument('-p', '--payload', help='payload to be sent as string, default:0x30', default='30', type=str)
     
     args = parser.parse_args()
     packet_num=args.number
     packet_delay=args.delay
+    payload=args.payload
 
-    disco_session(packet_num,packet_delay)
+    disco_session(packet_num,packet_delay,payload)

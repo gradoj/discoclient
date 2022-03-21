@@ -274,6 +274,18 @@ def disco_session(packet_num,packet_delay,payload):
 
     return
 
+def check_msgs(id):
+    url = "https://discomode.io/api/msg?id="+str(id)
+
+    try:
+        data=requests.get(url=url, headers=headers)
+        data=data.json()
+    except JSONDecodeError:
+        logging.exception("disco_id not found")
+        return
+    
+    logging.info('get msg packet %s from %s', data, url)
+    return data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("disco mode client", add_help=True)
@@ -281,10 +293,28 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=1, type=int)
     parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=1, type=int)
     parser.add_argument('-p', '--payload', help='payload to be sent as string, default:30', default='30', type=str)
+    parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default:0',default=0,type=int)
     
     args = parser.parse_args()
     packet_num=args.number
     packet_delay=args.delay
     payload=args.payload
+    poll=int(args.interval)
 
+    # open json config file for config
+    with open('disco.json') as json_file:
+        config = load(json_file)
+
+    # if the polling interval is set drop run forever
+    if poll > 0:
+        while(True):
+            msg = check_msgs(config['disco_id'])
+            if msg:
+                print('msg',msg)
+                packet_num = msg['disco']['num']
+                packet_delay = msg['disco']['delay']
+                disco_session(packet_num,packet_delay,payload)
+            time.sleep(poll)
+
+    # if not polling just use environment variables and run once
     disco_session(packet_num,packet_delay,payload)

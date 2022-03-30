@@ -290,18 +290,20 @@ def check_msgs(id):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("disco mode client", add_help=True)
 
-    parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=1, type=int)
-    parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=1, type=int)
-    parser.add_argument('-p', '--payload', help='payload to be sent as string, default:30', default='30', type=str)
-    parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default:0',default=60,type=int)
+    parser.add_argument('-n', '--number', help='number of packets to send, default=6', default=1, type=int)
+    parser.add_argument('-d', '--delay', help='delay in seconds between packets, default=5', default=1, type=int)
+    parser.add_argument('-p', '--payload', help='payload to be sent as string, default=30', default='30', type=str)
+    parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default=0',default=60,type=int)
+    parser.add_argument('-m', '--miner', help='name of the docker container or ip and port of miner, default=miner:4467',default='miner:4467',type=str)
 
     args = parser.parse_args()
     packet_num=args.number
     packet_delay=args.delay
     payload=args.payload
     poll=int(args.interval)
+    miner=str(args.miner)
 
-    miner_rpc = mrpc.mrpc()
+    miner_rpc = mrpc.mrpc(miner)
 
     # open json config file for config
     with open('disco.json') as json_file:

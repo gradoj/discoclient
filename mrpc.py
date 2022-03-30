@@ -4,9 +4,9 @@ import json
 commands=('info_height','info_name','info_block_age','info_p2p_status','info_region','info_summary','info_location','info_version','peer_addr')
 
 class mrpc:
-    def __init__(self):
+    def __init__(self,miner):
         self.session = requests.Session()
-        self.host = 'http://miner:4467'
+        self.host = 'http://'+miner
         self.header = {'Content-type': 'application/json'}
         self.payload = {"jsonrpc":"2.0",
                         "id":1,

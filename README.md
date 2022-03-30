@@ -4,10 +4,10 @@ This is a client to run discovery(disco) mode on a Helium hotspots. Disco mode s
 # how to run it
 This disco client runs in parallel with the helium miner on the hotspot. When invoked it acts as a lorawan network server while it delivers the disco packet to the forwarder at which point this code is complete and exits. It only responds the the PULL_DATA when polled by the packet forwarder. If you want to run the miner and this disco client some kind of packet multiplexer is required to handle running a single packet forwarder with the miner and this client. The chirpstack packet multiplexer or the helium middleman software both should work but chirpstack is preferred as it does not alter the packet metadata.
 
-Add your port and hotspot address to the disco.json configuration file. The port is used to listed to the forwarder(multiplexer) on so make sure that matches the chirpstack multiplexer config. Leave the disco id field empty and that will automatically be filled out by when the code runs.
+Add your listening port to the disco.json configuration file. The port is used to listed to the forwarder(multiplexer) on so make sure that matches the chirpstack multiplexer config. You can leave the disco id and hotspot_addr fields empty and that will automatically be filled out by when the code runs.
 
 # how it works
-The server discomode.io generates and provides packets for the client(this software) running on the hotspot. Disco mode uses standard LoRaWAN packets and infrastrure to collect and report the packets transmitted by the hotspot. Discoclient acts as a bridge between discomode.io and the lorawan packet forwarder running on the hotspots so is responsible for getting a disco id, obtaining the disco packet, and conveying that packet to the forwarder to be transmitted.
+The server discomode.io generates and provides packets for the client(this software) running on the hotspot. Disco mode uses standard LoRaWAN packets and infrastrure to collect and report the packets transmitted by the hotspot. Discoclient acts as a bridge between discomode.io and the lorawan packet forwarder running on the hotspots so is responsible for getting a disco id(lorawan sensor id), obtaining the disco packet, and conveying that packet to the forwarder to be transmitted.
 
 ## get id
 discomode.io/api/id?hs_addr=your_hotspot_address
@@ -21,6 +21,9 @@ discomode.io/api/disco?id=your_disco_id&payload=deadbeef
 The payload to be transmitted can be optionally be passed in as hex strings. This isn't really complete yet as it isn't encrypted as per lorawan specs with the appskey nor is there any way to retrieve it.  
 
 ## view results
+
+dash.discomode.io
+
 All data packets are paid for through the Helium router and collected. The disco results can be view through a visual map view or json list of hotspots.
 
 ### Map view

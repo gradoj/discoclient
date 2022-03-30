@@ -8,6 +8,7 @@ import logging
 import json
 import sys
 import time
+import mrpc
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -25,42 +26,42 @@ headers = {
     'From': 'your@email.com'  # This is another valid field
 }
 
-def get_disco_id(hs_addr = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"):
+def get_disco_id(hs_addr):
     url = "https://discomode.io/api/id?hs_addr="+str(hs_addr)
 
-    
     try:
         data=requests.get(url=url, headers=headers)
         data=data.json()
+        logging.info('data'+str(data))
     except JSONDecodeError:
         logging.exception("cannot get new disco_id")
         return
-    
+
     logging.info('got disco id %s from %s', data['disco_id'], url)
     return data['disco_id']
 
-def get_disco_packet(id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",payload='30'):
+def get_disco_packet(id,payload='30'):
     url = "https://discomode.io/api/disco?id="+str(id)+'&payload='+payload
 
-    
+
     try:
         data=requests.get(url=url, headers=headers)
         data=data.json()
     except JSONDecodeError:
         logging.exception("disco_id not found")
         return
-    
+
     logging.info('get disco packet %s from %s', data, url)
     return data
 
 class GatewayMessage():
     """A Gateway Message.
-    
+
     Messages sent between the LoRa gateway and the LoRa network
     server. The gateway message protocol operates over UDP and
     occupies the data area of a UDP packet. See Gateway to Server
     Interface Definition.
-    
+
     Attributes:
         version (int): Protocol version - 0x01 or 0x02
         token (str): Arbitrary tracking value set by the gateway.
@@ -75,7 +76,7 @@ class GatewayMessage():
                  gatewayEUI=None, txpk=None, remote=None,
                  ptype=None):
         """GatewayMessage initialisation method.
-        
+
         Args:
             version (int): GWMP version.
             token (str): Message token.
@@ -84,10 +85,10 @@ class GatewayMessage():
             payload: GWMP payload.
             ptype (str): payload type
             remote: (host, port)
-            
+
         Raises:
             TypeError: If payload argument is set to None.
-        
+
         """
         self.version = version
         self.token = token
@@ -96,22 +97,22 @@ class GatewayMessage():
         self.payload = ''
         self.ptype = ptype
         self.remote = remote
-        
+
         self.rxpk = None
         self.txpk = txpk
         self.stat = None
-    
+
     @classmethod
     def decode(cls, data, remote):
         """Create a Message object from binary representation.
-        
+
         Args:
             data (str): UDP packet data.
             remote (tuple): Gateway address and port.
-        
+
         Returns:
             GatewayMessage object on success.
-            
+
         """
         # Check length
         if len(data) < 4:
@@ -144,7 +145,7 @@ class GatewayMessage():
 
         elif m.id == TX_ACK:
             m.payload = data[4:]
-            
+
         # Decode PUSH_DATA payload
         if m.id == PUSH_DATA:
             try:
@@ -157,10 +158,10 @@ class GatewayMessage():
 
     def encode(self):
         """Create a binary representation of message from Message object.
-        
+
         Returns:
             String of packed data.
-        
+
         """
         data = ''
         if self.id == PUSH_ACK:
@@ -170,7 +171,7 @@ class GatewayMessage():
         elif self.id == PULL_RESP:
             if self.version == 1:
                 self.token = 0
-    
+
             self.payload = json.dumps(self.txpk).encode('utf-8')
             data = pack('<BHB', self.version, self.token, self.id) + \
                     self.payload
@@ -178,17 +179,17 @@ class GatewayMessage():
         # Add this case receive join accept message from miner
         elif self.id == PULL_DATA:
             data = pack('<BHB', self.version, self.token, self.id) + unhexlify(self.gatewayEUI)
-            
+
         return data
 
 
 def sendPullResponse(remote, request, txpk, sock, gateway_eui=b'FFFFFFFFFFFFFFFF'):
     """"Send a PULL_RESP message to a gateway.
-    
+
     The PULL_RESP message transports its payload, a JSON object,
     from the LoRa network server to the LoRa gateway. The length
     of a PULL_RESP message shall not exceed 1000 octets.
-    
+
     Args:
         request (GatewayMessage): The decoded Pull Request
         txpk (Txpk): The txpk to be transported
@@ -207,8 +208,7 @@ def sendPullResponse(remote, request, txpk, sock, gateway_eui=b'FFFFFFFFFFFFFFFF
 
 def sendPushAck(remote, request,sock):
     """"Send a PULL_ACK message to a gateway.
-    
-   
+
     """
     remote = (remote[0], remote[1])
 
@@ -218,7 +218,7 @@ def sendPushAck(remote, request,sock):
     logging.info("Sending PULL_ACK message to %s:%d" % remote)
 
     sock.sendto(m.encode(), remote)
-     
+
 def disco_to_forwarder(id,payload,port=1681):
     ''' get disco packet from server using id and give to forwarder when polled on port
 
@@ -245,7 +245,7 @@ def disco_to_forwarder(id,payload,port=1681):
             break
         elif message.id==PUSH_DATA:
             sendPushAck(remote, message,sock)
-        
+
 def disco_session(packet_num,packet_delay,payload):
     # open json config file for config
     with open('disco.json') as json_file:
@@ -255,13 +255,13 @@ def disco_session(packet_num,packet_delay,payload):
     listen_port = config['listen_port']
     hotspot_addr = config['hotspot_addr']
     id = config['disco_id']
-    
+
     # get new disco id if one not found in config
     if id == None or id == '':
         logging.info('no discovery id found. getting new id')
         id = get_disco_id(hs_addr=hotspot_addr)
         config['disco_id'] = id
-    
+
         # save back to file if we got new id
         with open('disco.json', 'w') as outfile:
             dump(config, outfile, indent=4)
@@ -283,29 +283,51 @@ def check_msgs(id):
     except JSONDecodeError:
         logging.exception("disco_id not found")
         return
-    
+
     logging.info('get msg packet %s from %s', data, url)
     return data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("disco mode client", add_help=True)
-    
+
     parser.add_argument('-n', '--number', help='number of packets to send, default:6', default=1, type=int)
     parser.add_argument('-d', '--delay', help='delay in seconds between packets, default:5', default=1, type=int)
     parser.add_argument('-p', '--payload', help='payload to be sent as string, default:30', default='30', type=str)
-    parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default:0',default=0,type=int)
-    
+    parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default:0',default=60,type=int)
+
     args = parser.parse_args()
     packet_num=args.number
     packet_delay=args.delay
     payload=args.payload
     poll=int(args.interval)
 
+    miner_rpc = mrpc.mrpc()
+
     # open json config file for config
     with open('disco.json') as json_file:
         config = load(json_file)
+    # getting port to listen on and hs addr to associate with disco id
+    listen_port = config['listen_port']
+    hotspot_addr = config['hotspot_addr']
+    id = config['disco_id']
 
-    # if the polling interval is set drop run forever
+    # get new disco id if one not found in config
+    if id == None or id == '':
+        logging.info('no discovery id found. getting new id')
+        if hotspot_addr == None or hotspot_addr == '':
+            logging.info('no hotspot addr found. using miner rpc to lookup')
+
+            hotspot_addr = miner_rpc.address()
+
+        id = get_disco_id(hs_addr=hotspot_addr)
+        config['disco_id'] = id
+        config['hotspot_addr'] = hotspot_addr
+
+        # save back to file if we got new id
+        with open('disco.json', 'w') as outfile:
+            dump(config, outfile, indent=4)
+
+    # if the polling interval is set then run forever
     if poll > 0:
         while(True):
             msg = check_msgs(config['disco_id'])
@@ -318,3 +340,5 @@ if __name__ == "__main__":
 
     # if not polling just use environment variables and run once
     disco_session(packet_num,packet_delay,payload)
+
+

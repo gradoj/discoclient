@@ -2,9 +2,15 @@ version: "2.4"
 services:
   discomode:
     image: ghcr.io/gradoj/discoclient:latest
+    container_name: discomode
     build: .
+    networks:
+      - helium
+    expose:
+      - 1681/udp
     command: python /disco.py -n ${NUM:-6} -d ${DELAY:-5} -p ${PAYLOAD:-30}
     ports:
       - "1681:1681/udp"
     volumes:
       - ./disco.json:/disco.json
+

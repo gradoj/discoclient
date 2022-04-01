@@ -306,8 +306,18 @@ if __name__ == "__main__":
     miner_rpc = mrpc.mrpc(miner)
 
     # open json config file for config
-    with open('disco.json') as json_file:
-        config = load(json_file)
+    try:
+        with open('disco.json') as json_file:
+            config = load(json_file)
+    except FileNotFoundError:
+        config = {
+                "hotspot_addr": "",
+                "disco_id": "",
+                "listen_port": 1681
+            }
+        with open('disco.json', 'w') as outfile:
+            dump(config, outfile, indent=4)
+
     # getting port to listen on and hs addr to associate with disco id
     listen_port = config['listen_port']
     hotspot_addr = config['hotspot_addr']

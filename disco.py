@@ -1,5 +1,8 @@
 import socket
+import threading
+import signal
 import requests
+from queue import Queue
 from struct import pack,unpack
 from json import JSONDecodeError, load, loads, dump, dumps
 from binascii import hexlify,unhexlify
@@ -26,6 +29,97 @@ headers = {
     'From': 'your@email.com'  # This is another valid field
 }
 
+class MSG_Job(threading.Thread):
+    def __init__(self, id, q, delay):
+        threading.Thread.__init__(self)
+ 
+        # The shutdown_flag is a threading.Event object that
+        # indicates whether the thread should be terminated.
+        self.shutdown_flag = threading.Event()
+        self.delay = delay # delay between actions
+        self.id = id # disco id which is a lorawan sensor id from console 
+        self.q = q
+        # ... Other thread setup code here ...
+ 
+    def run(self):
+        #print('Thread #%s started' % self.ident)
+        logging.info('MSG poll thread started')
+ 
+        #while not self.shutdown_flag.is_set():
+            # ... Job code here ...
+        #    time.sleep(0.5)
+        # check messages here
+        msg = check_msgs(self.id)
+        if msg:
+            q.put(msg)
+
+        while(True):
+            if self.shutdown_flag.wait(timeout=self.delay):
+                logging.info('MSG thread exit event')
+                break
+            else:
+                logging.debug('Check message')
+                # check messages here
+                msg = check_msgs(self.id)
+                if msg:
+                    q.put(msg)
+
+        # ... Clean shutdown code here ...
+        logging.info('MSG thread exit')
+        #print('Thread #%s stopped' % self.ident)
+
+class Send_Job(threading.Thread):
+    def __init__(self, id, packet_delay, packet_num, payload, port=1681):
+        threading.Thread.__init__(self)
+ 
+        # The shutdown_flag is a threading.Event object that
+        # indicates whether the thread should be terminated.
+        self.shutdown_flag = threading.Event()
+        self.packet_delay = packet_delay # delay between actions
+        self.packet_num = packet_num
+        self.id = id
+        self.payload = payload
+        self.port = port
+
+        # ... Other thread setup code here ...
+ 
+    def run(self):
+        #print('Thread #%s started' % self.ident)
+        logging.info('Send packet thread started')
+ 
+        #while not self.shutdown_flag.is_set():
+            # ... Job code here ...
+        #    time.sleep(0.5)
+        disco_to_forwarder(self.id,self.payload,self.port)
+        self.packet_num = self.packet_num-1
+
+        while(self.packet_num > 0):
+        #while(True):
+            if self.shutdown_flag.wait(timeout=self.packet_delay):
+                logging.info('Send thread exit event')
+                break
+            else:
+                logging.info('Send message')
+                # send the packet
+                disco_to_forwarder(self.id,self.payload,self.port)
+                self.packet_num = self.packet_num-1
+
+        # ... Clean shutdown code here ...
+        #print('Thread #%s stopped' % self.ident)
+        logging.info('Send thread exit')
+ 
+class ServiceExit(Exception):
+    """
+    Custom exception which is used to trigger the clean exit
+    of all running threads and the main program.
+    """
+    pass
+ 
+ 
+def service_shutdown(signum, frame):
+    print('Caught signal %d' % signum)
+    raise ServiceExit
+ 
 def get_disco_id(hs_addr):
     url = "https://discomode.io/api/id?hs_addr="+str(hs_addr)
 
@@ -182,7 +276,6 @@ class GatewayMessage():
 
         return data
 
-
 def sendPullResponse(remote, request, txpk, sock, gateway_eui=b'FFFFFFFFFFFFFFFF'):
     """"Send a PULL_RESP message to a gateway.
 
@@ -248,29 +341,29 @@ def disco_to_forwarder(id,payload,port=1681):
 
 def disco_session(packet_num,packet_delay,payload):
     # open json config file for config
-    with open('disco.json') as json_file:
-        config = load(json_file)
+    #with open('disco.json') as json_file:
+    #    config = load(json_file)
 
     # getting port to listen on and hs addr to associate with disco id
-    listen_port = config['listen_port']
-    hotspot_addr = config['hotspot_addr']
-    id = config['disco_id']
+    #listen_port = config['listen_port']
+    #hotspot_addr = config['hotspot_addr']
+    #id = config['disco_id']
 
     # get new disco id if one not found in config
-    if id == None or id == '':
-        logging.info('no discovery id found. getting new id')
-        id = get_disco_id(hs_addr=hotspot_addr)
-        config['disco_id'] = id
+    #if id == None or id == '':
+    #    logging.info('no discovery id found. getting new id')
+    #    id = get_disco_id(hs_addr=hotspot_addr)
+    #    config['disco_id'] = id
 
         # save back to file if we got new id
-        with open('disco.json', 'w') as outfile:
-            dump(config, outfile, indent=4)
+    #    with open('disco.json', 'w') as outfile:
+    #        dump(config, outfile, indent=4)
 
-    for i in range(packet_num):
+    #for i in range(packet_num):
         # open port and wait for forwarder to pull the disco data packet to transmit
-        disco_to_forwarder(id,payload,listen_port)
-        print('packet number', i)
-        time.sleep(packet_delay)
+    #    disco_to_forwarder(id,payload,listen_port)
+    #    print('packet number', i)
+    #    time.sleep(packet_delay)
 
     return
 
@@ -313,16 +406,19 @@ if __name__ == "__main__":
         config = {
                 "hotspot_addr": "",
                 "disco_id": "",
-                "listen_port": 1681
+                "listen_port": 1681,
+                "password": ""
             }
         with open('disco.json', 'w') as outfile:
             dump(config, outfile, indent=4)
 
+    
     # getting port to listen on and hs addr to associate with disco id
     listen_port = config['listen_port']
     hotspot_addr = config['hotspot_addr']
     id = config['disco_id']
-
+    password = config['password']
+    
     # get new disco id if one not found in config
     if id == None or id == '':
         logging.info('no discovery id found. getting new id')
@@ -339,16 +435,46 @@ if __name__ == "__main__":
         with open('disco.json', 'w') as outfile:
             dump(config, outfile, indent=4)
 
+    # Register the signal handlers
+    signal.signal(signal.SIGTERM, service_shutdown)
+    signal.signal(signal.SIGINT, service_shutdown)
+
     # if the polling interval is set then run forever
     if poll > 0:
-        while(True):
-            msg = check_msgs(config['disco_id'])
-            if msg:
-                print('msg',msg)
-                packet_num = msg['disco']['num']
-                packet_delay = msg['disco']['delay']
-                disco_session(packet_num,packet_delay,payload)
-            time.sleep(poll)
+        try:
+            q = Queue()
+            #msg_thread = threading.Thread(target=check_msgs, args=(config['disco_id'],))
+            msg_thread = MSG_Job(id, q, poll) # start message thread with poll as the interval between checking messages
+            msg_thread.start()
+            #send_thread = threading.Thread(target=disco_to_forwarder, args=(config['disco_id'],payload,listen_port,))
+
+            while(True):
+                msg=q.get()
+                if msg:
+                    # check if send_thread is define or currently running
+                    if 'send_thread' in locals():
+                        # got a new message assuming disco message just shutdown anything running and kick off a new one
+                        send_thread.shutdown_flag.set()
+                      
+                    msg=msg['disco']
+                    
+                    if (msg['password'] == password):                 
+                        send_thread = Send_Job(id, msg['delay'], msg['num'], payload, listen_port)
+                        send_thread.start()
+                    else:
+                        # password did not match just throw msg away
+                        msg=None
+
+                # just sleep here is main so signals get processed
+                time.sleep(1)
+        except ServiceExit:
+            # Terminate the running threads.
+            # Set the shutdown flag on each thread to trigger a clean shutdown of each thread.
+            msg_thread.shutdown_flag.set()
+            send_thread.shutdown_flag.set()
+            # Wait for the threads to close...
+            msg_thread.join()
+            send_thread.join()
 
     # if not polling just use environment variables and run once
     disco_session(packet_num,packet_delay,payload)

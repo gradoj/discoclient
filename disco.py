@@ -69,7 +69,7 @@ class MSG_Job(threading.Thread):
         #print('Thread #%s stopped' % self.ident)
 
 class Send_Job(threading.Thread):
-    def __init__(self, id, packet_delay, packet_num, payload, port=1681):
+    def __init__(self, id, packet_delay, packet_num, payload, freq, power, datarate, port=1681):
         threading.Thread.__init__(self)
  
         # The shutdown_flag is a threading.Event object that
@@ -80,6 +80,9 @@ class Send_Job(threading.Thread):
         self.id = id
         self.payload = payload
         self.port = port
+        self.freq = freq
+        self.power = power
+        self.datarate = datarate
 
         # ... Other thread setup code here ...
  
@@ -90,7 +93,7 @@ class Send_Job(threading.Thread):
         #while not self.shutdown_flag.is_set():
             # ... Job code here ...
         #    time.sleep(0.5)
-        disco_to_forwarder(self.id,self.payload,self.port)
+        disco_to_forwarder(self.id,self.payload,self.freq,self.power,self.datarate,self.port)
         self.packet_num = self.packet_num-1
 
         while(self.packet_num > 0):
@@ -101,7 +104,7 @@ class Send_Job(threading.Thread):
             else:
                 logging.info('Send message')
                 # send the packet
-                disco_to_forwarder(self.id,self.payload,self.port)
+                disco_to_forwarder(self.id,self.payload,self.freq,self.power,self.datarate,self.port)
                 self.packet_num = self.packet_num-1
 
         # ... Clean shutdown code here ...
@@ -134,9 +137,9 @@ def get_disco_id(hs_addr):
     logging.info('got disco id %s from %s', data['disco_id'], url)
     return data['disco_id']
 
-def get_disco_packet(id,payload='30'):
-    url = "https://discomode.io/api/disco?id="+str(id)+'&payload='+payload
-
+def get_disco_packet(id,freq,power,datarate,payload='30'):
+    url = "https://discomode.io/api/disco?id="+str(id)+'&payload='+payload+'&freq='+str(freq)+'&power='+str(power)+'&datarate='+datarate
+    #url = "http://localhost:3000/api/disco?id="+str(id)+'&payload='+payload+'&freq='+str(freq)+'&power='+str(power)+'&datarate='+datarate
 
     try:
         data=requests.get(url=url, headers=headers)
@@ -312,7 +315,7 @@ def sendPushAck(remote, request,sock):
 
     sock.sendto(m.encode(), remote)
 
-def disco_to_forwarder(id,payload,port=1681):
+def disco_to_forwarder(id,payload,freq,power,datarate,port=1681):
     ''' get disco packet from server using id and give to forwarder when polled on port
 
     '''
@@ -333,7 +336,7 @@ def disco_to_forwarder(id,payload,port=1681):
         message = gm.decode(data, remote)
 
         if message.id==PULL_DATA:
-            txpk=get_disco_packet(id=id, payload=payload)
+            txpk=get_disco_packet(id=id, payload=payload, freq=freq, power=power, datarate=datarate)
             sendPullResponse(remote,message,txpk,sock)
             break
         elif message.id==PUSH_DATA:
@@ -458,8 +461,8 @@ if __name__ == "__main__":
                       
                     msg=msg['disco']
                     
-                    if (msg['password'] == password):                 
-                        send_thread = Send_Job(id, msg['delay'], msg['num'], payload, listen_port)
+                    if (msg['password'] == password):  
+                        send_thread = Send_Job(id, msg['delay'], msg['num'], payload, msg['freq'], msg['power'], msg['datarate'], listen_port)
                         send_thread.start()
                     else:
                         # password did not match just throw msg away

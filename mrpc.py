@@ -1,5 +1,8 @@
 import requests
 import json
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 commands=('info_height','info_name','info_block_age','info_p2p_status','info_region','info_summary','info_location','info_version','peer_addr')
 

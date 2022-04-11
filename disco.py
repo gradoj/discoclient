@@ -49,7 +49,12 @@ class MSG_Job(threading.Thread):
             # ... Job code here ...
         #    time.sleep(0.5)
         # check messages here
-        msg = check_msgs(self.id)
+        try:
+            msg = check_msgs(self.id)
+        except:
+            logging.exception('exception in check msg')
+            msg=None
+
         if msg:
             q.put(msg)
 

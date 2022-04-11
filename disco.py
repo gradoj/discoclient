@@ -384,7 +384,9 @@ def check_msgs(id):
     except JSONDecodeError:
         logging.exception("disco_id not found")
         return
-
+    except ConnectionError:
+        logging.exception("connection error")
+        return
     logging.info('get msg packet %s from %s', data, url)
     return data
 

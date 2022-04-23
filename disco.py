@@ -128,8 +128,8 @@ def service_shutdown(signum, frame):
     print('Caught signal %d' % signum)
     raise ServiceExit
  
-def get_disco_id(hs_addr):
-    url = "https://discomode.io/api/id?hs_addr="+str(hs_addr)
+def get_disco_id(hs_addr,region):
+    url = "https://discomode.io/api/id?hs_addr="+str(hs_addr)+'&region='+str(region)
 
     try:
         data=requests.get(url=url, headers=headers)
@@ -436,8 +436,9 @@ if __name__ == "__main__":
             logging.info('no hotspot addr found. using miner rpc to lookup')
 
             hotspot_addr = miner_rpc.address()
+            region = miner_rpc.region()
 
-        id = get_disco_id(hs_addr=hotspot_addr)
+        id = get_disco_id(hs_addr=hotspot_addr,region=region)
         config['disco_id'] = id
         config['hotspot_addr'] = hotspot_addr
 

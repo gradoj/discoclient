@@ -36,6 +36,10 @@ class mrpc:
     def height(self):
         block_height = self.get('info_height')['height']
         return block_height
+    
+    def region(self):
+        hotspot_region = self.get('info_region')['region']
+        return hotspot_region
 
 
 def test_all():

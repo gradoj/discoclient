@@ -387,13 +387,16 @@ def check_msgs(id):
     except ConnectionError:
         logging.exception("connection error")
         return
+    except:
+    	logging.exception("Unhandled error in check_msgs")
+    	return
     logging.info('get msg packet %s from %s', data, url)
     return data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("disco mode client", add_help=True)
 
-    parser.add_argument('-n', '--number', help='number of packets to send, default=6', default=1, type=int)
+    parser.add_argument('-n', '--number', help='number of packets to send, default=1', default=1, type=int)
     parser.add_argument('-d', '--delay', help='delay in seconds between packets, default=5', default=1, type=int)
     parser.add_argument('-p', '--payload', help='payload to be sent as string, default=30', default='30', type=str)
     parser.add_argument('-i', '--interval', help='polling interval in seconds to check for commands, default=0',default=60,type=int)
@@ -406,6 +409,8 @@ if __name__ == "__main__":
     poll=int(args.interval)
     miner=str(args.miner)
 
+
+
     miner_rpc = mrpc.mrpc(miner)
 
     # open json config file for config
@@ -417,30 +422,39 @@ if __name__ == "__main__":
                 "hotspot_addr": "",
                 "disco_id": "",
                 "listen_port": 1681,
-                "password": ""
+                "password": "",
+                "region": ""
             }
         with open('disco.json', 'w') as outfile:
             dump(config, outfile, indent=4)
 
-    
     # getting port to listen on and hs addr to associate with disco id
     listen_port = config['listen_port']
     hotspot_addr = config['hotspot_addr']
     id = config['disco_id']
     password = config['password']
+    region = config['region']
     
     # get new disco id if one not found in config
     if id == None or id == '':
         logging.info('no discovery id found. getting new id')
         if hotspot_addr == None or hotspot_addr == '':
-            logging.info('no hotspot addr found. using miner rpc to lookup')
+        # there is no hotspot address in the json file
+            logging.info('no hotspot addr found. using miner rpc to lookup hotspot address and region')
 
             hotspot_addr = miner_rpc.address()
             region = miner_rpc.region()
+        else:
+        # there is a hotspot address
+        	if region == None or region == '':
+        		logging.info('hotspot addr found but no region. using miner rpc to lookup region')
+        		region = miner_rpc.region()
 
+		# now that we've got hotspot address and region we can get a new disco id
         id = get_disco_id(hs_addr=hotspot_addr,region=region)
         config['disco_id'] = id
-        config['hotspot_addr'] = hotspot_addr
+        config['region'] = region
+        config['hotspot_addr'] = hotspot_addr    
 
         # save back to file if we got new id
         with open('disco.json', 'w') as outfile:

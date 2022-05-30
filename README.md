@@ -7,8 +7,8 @@ This is a client to run discovery(disco) mode on a Helium hotspots. Disco mode s
 ## how to run
 The easiest method is use one of the prebuilt images flashed to sd card. These are built from a branch of the heliumDIY ansible repo.
 ### Prebuilt Image
-https://github.com/gradoj/helium_ansible/releases/download/v0.0.1/RAKV1-disco-raspios-bullseye.zip
-https://github.com/gradoj/helium_ansible/releases/download/v0.0.1/SENSECAP-disco-raspios-bullseye.zip
+https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/RAKV1-DISCO-US915-raspios-bullseye-arm64.zip
+https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/SENSECAP-DISCO-US915-raspios-bullseye-arm64.zip
 
 ### Ansible
 This branch of HeliumDIY has the disco client enabled. Follow readme and create your own sd card.

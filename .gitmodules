@@ -1,0 +1,7 @@
+[submodule "discoclient"]
+	path = discoclient
+	url = https://github.com/gradoj/discoclient.git
+	branch = balena
+[submodule "chirpstack-packet-multiplexer"]
+	path = chirpstack-packet-multiplexer
+	url = https://github.com/gradoj/chirpstack-packet-multiplexer.git

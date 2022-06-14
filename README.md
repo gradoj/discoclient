@@ -1,6 +1,8 @@
 # discoclient
 This is a client to run discovery(disco) mode on a Helium hotspots. Disco mode sends packets from a hotspot to be received and reported by neighbouring hotspots. This can be useful to test your hotspot and antenna, optimize antenna placement, verify functionality of neighboring hotspots,etc
 
+https://discomode.io/
+
 ![dash.discomode.io](https://github.com/gradoj/discoclient/blob/main/screenshots/screen_disco.png)
 ![dash.discomode.io](https://github.com/gradoj/discoclient/blob/main/screenshots/screen_map.png)
 
@@ -12,12 +14,13 @@ Deploy with balena cloud
 ### Prebuilt Image
 Use one of the prebuilt images flashed to sd card. These are built from a branch of the heliumDIY ansible repo.
 
-https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/RAKV1-DISCO-US915-raspios-bullseye-arm64.zip
-https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/SENSECAP-DISCO-US915-raspios-bullseye-arm64.zip
+[RAKV1-DISCO-US915-raspios-bullseye-arm64](https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/RAKV1-DISCO-US915-raspios-bullseye-arm64.zip)
+
+[SENSECAP-DISCO-US915-raspios-bullseye-arm64](https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/SENSECAP-DISCO-US915-raspios-bullseye-arm64.zip)
 
 ### Ansible
 This branch of HeliumDIY has the disco client enabled. Follow readme and create your own sd card.
-https://github.com/gradoj/helium_ansible
+
 [https://github.com/gradoj/helium_ansible](https://github.com/gradoj/helium_ansible)
 
 ### Docker 
@@ -39,7 +42,7 @@ The server discomode.io generates and provides packets for the client(this softw
 If this client is run with the --interval switch it will poll dash.discomode.io for a message to begin a disco session.  
 
 ### Start disco mode from hotspot
-Instead of using dash.discomode discovery mode can be started directly from the hotspot.  
+Instead of using discomode.io website discovery mode can be started directly from the hotspot.  
 
     parser.add_argument('-n', '--number', help='number of packets to send, default=6', default=1, type=int)
     parser.add_argument('-d', '--delay', help='delay in seconds between packets, default=5', default=1, type=int)

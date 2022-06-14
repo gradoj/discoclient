@@ -5,8 +5,13 @@ This is a client to run discovery(disco) mode on a Helium hotspots. Disco mode s
 ![dash.discomode.io](https://github.com/gradoj/discoclient/blob/main/screenshots/screen_map.png)
 
 ## how to run
-The easiest method is use one of the prebuilt images flashed to sd card. These are built from a branch of the heliumDIY ansible repo.
+### Balena
+Deploy with balena cloud
+[![balena deploy button](https://www.balena.io/deploy.svg)](https://dashboard.balena-cloud.com/deploy?repoUrl=https://github.com/gradoj/helium-rak-disco)
+
 ### Prebuilt Image
+Use one of the prebuilt images flashed to sd card. These are built from a branch of the heliumDIY ansible repo.
+
 https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/RAKV1-DISCO-US915-raspios-bullseye-arm64.zip
 https://github.com/gradoj/helium_ansible/releases/download/v0.0.2/SENSECAP-DISCO-US915-raspios-bullseye-arm64.zip
 
